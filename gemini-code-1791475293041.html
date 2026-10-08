@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHYSICAL DATA ANALYSIS SYSTEM</title>
+    <!-- Chart.js 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@400;700;900&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            background-color: #030406; color: #e2e8f0;
+            display: flex; justify-content: center; padding: 30px 20px 80px;
+        }
+
+        .container { width: 100%; max-width: 650px; }
+
+        /* 시스템 헤더 */
+        .sys-header { text-align: center; margin-bottom: 20px; }
+        .sys-header h1 { 
+            color: #ffffff; font-family: 'Orbitron', sans-serif; font-size: 28px; letter-spacing: 3px;
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.6); margin-bottom: 5px;
+        }
+        .sys-header p { color: #00f3ff; font-size: 12px; letter-spacing: 2px; font-weight: 700; }
+
+        /* 탭 메뉴 */
+        .tab-menu { display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; }
+        .tab-link {
+            background-color: #1a1e28; border: 1px solid #2a3040; color: #94a3b8;
+            padding: 12px 16px; border-radius: 30px; font-size: 13px; font-weight: 700; cursor: pointer;
+            transition: all 0.3s ease; display: flex; align-items: center; gap: 6px;
+        }
+        .tab-link:hover { background-color: #242a38; color: #cbd5e1; }
+        .tab-link.active {
+            background-color: #2c3446; border-color: #475569; color: #ffffff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.05);
+        }
+        
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+
+        /* 카드 UI 공통 */
+        .cyber-card {
+            background: #0a0d14; border-radius: 12px; padding: 25px; margin-bottom: 20px;
+            border: 1px solid #112233; position: relative; overflow: hidden;
+        }
+        .cyber-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, #0055ff, #00f3ff, transparent);
+        }
+
+        .card-title {
+            font-size: 15px; color: #fff; margin-bottom: 20px; font-weight: 900;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card-title::before { content: '■'; color: #00f3ff; font-size: 12px; }
+        .card-desc { font-size: 12px; color: #64748b; margin-bottom: 15px; margin-top: -10px;}
+
+        /* 입력 폼 */
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .input-group { display: flex; flex-direction: column; position: relative; width: 100%; }
+        .input-group label { font-size: 12px; color: #64748b; margin-bottom: 6px; font-weight: 700; }
+        
+        input, select {
+            width: 100%; padding: 14px; border-radius: 6px;
+            background-color: #050608; border: 1px solid #1e293b;
+            color: #00f3ff; font-size: 15px; outline: none; font-weight: 900;
+            transition: all 0.3s; font-family: 'Orbitron', 'Noto Sans KR', sans-serif;
+        }
+        input:focus, select:focus { border-color: #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
+        input::placeholder { color: #1e293b; font-weight: 400; }
+        .unit { position: absolute; right: 15px; top: 38px; color: #475569; font-size: 13px; font-weight: 700; pointer-events: none; }
+
+        .sbd-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+        .sbd-label { width: 80px; font-size: 13px; color: #fff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        .sbd-row input { padding: 12px; font-size: 14px; }
+
+        /* 버튼 */
+        .btn-analyze {
+            width: 100%; padding: 18px; border: none; border-radius: 6px; margin-top: 10px;
+            background: linear-gradient(90deg, #0055ff, #00a2ff);
+            color: #fff; font-size: 16px; font-weight: 900; cursor: pointer; letter-spacing: 2px;
+            box-shadow: 0 4px 20px rgba(0, 162, 255, 0.4); transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+        }
+        .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(0, 243, 255, 0.6); filter: brightness(1.2); }
+
+        .btn-clear {
+            width: 100%; padding: 14px; border: 1px solid #1e293b; border-radius: 6px; margin-top: 15px;
+            background: #050608; color: #64748b; font-size: 13px; font-weight: 700; cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-clear:hover { background: #1e293b; color: #ff0055; border-color: #ff0055; }
+
+        /* 대시보드 공통 */
+        .dashboard-area { display: none; margin-top: 30px; animation: glowFadeIn 0.8s ease; }
+        .section-header { font-size: 14px; color: #fff; margin-bottom: 15px; font-weight: 900; border-bottom: 1px solid #1e293b; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .section-header .sub { font-size: 11px; color: #64748b; font-weight: 400; }
+
+        /* ================= 탭 1 (1RM & 밸런스) UI ================= */
+        .main-display { background: #050608; border: 1px solid #1e293b; border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .main-display .label { font-size: 13px; color: #00f3ff; font-weight: 900; letter-spacing: 2px; }
+        .main-display .value { font-size: 55px; font-weight: 900; color: #ffffff; margin: 5px 0; text-shadow: 0 0 20px rgba(0, 243, 255, 0.5), 0 0 40px rgba(0, 85, 255, 0.3); font-family: 'Orbitron', sans-serif; }
+        .sbd-breakdown { display: flex; justify-content: center; gap: 20px; font-size: 13px; color: #cbd5e1; font-weight: 700; font-family: 'Orbitron', sans-serif; }
+        .sbd-breakdown span { color: #00f3ff; }
+
+        .modifier-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 25px; }
+        .mod-card { background: #0a0d14; border: 1px solid #1e293b; padding: 12px; border-radius: 8px; text-align: center; }
+        .mod-card .m-title { font-size: 10px; color: #64748b; font-weight: 900; margin-bottom: 5px; }
+        .mod-card .m-value { font-size: 15px; color: #00f3ff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        
+        .report-box { background: rgba(0, 162, 255, 0.05); border-left: 3px solid #00f3ff; padding: 20px; border-radius: 6px; margin-bottom: 30px; }
+        .report-box .title { color: #00f3ff; font-size: 13px; font-weight: 900; letter-spacing: 1px; margin-bottom: 12px; }
+        .report-box .text { font-size: 14px; color: #cbd5e1; line-height: 1.6; }
+
+        .rm-table { width: 100%; border-collapse: collapse; background: #050608; border-radius: 8px; overflow: hidden; border: 1px solid #1e293b; text-align: center; }
+        .rm-table th { background: #0a0d14; color: #94a3b8; font-size: 12px; padding: 12px; font-weight: 900; font-family: 'Orbitron', sans-serif; border-bottom: 1px solid #1e293b; }
+        .rm-table td { padding: 12px; color: #fff; font-size: 14px; font-weight: 900; font-family: 'Orbitron', sans-serif; border-bottom: 1px solid #1e293b; }
+
+        /* ================= 탭 2 (트래커) UI ================= */
+        .chart-container { background: #050608; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; margin-bottom: 20px; width: 100%; max-height: 250px;}
+        .history-list { display: flex; flex-direction: column; gap: 15px; }
+        .history-item { background: #050608; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; position: relative; display: flex; flex-direction: column; }
+        .btn-delete-record { position: absolute; top: 15px; right: 15px; background: transparent; border: none; color: #475569; font-size: 20px; cursor: pointer; transition: color 0.2s; line-height: 1; padding: 0 5px; }
+        .btn-delete-record:hover { color: #ff0055; }
+        .h-date { font-size: 13px; color: #94a3b8; font-weight: 900; font-family: 'Orbitron', sans-serif; display: flex; flex-direction: column; gap: 4px; margin-bottom: 15px; }
+        
+        .h-groups-wrapper { display: flex; gap: 15px; margin-bottom: 5px; }
+        .h-group-box { flex: 1; background: #0a0d14; border: 1px solid #112233; border-radius: 6px; padding: 12px; }
+        .h-group-title { font-size: 11px; color: #00f3ff; font-weight: 900; border-bottom: 1px solid #1e293b; padding-bottom: 6px; margin-bottom: 10px; letter-spacing: 1px; }
+        .h-stats-row { display: flex; justify-content: space-between; gap: 5px; }
+        .h-stat-col { text-align: center; flex: 1; }
+        .h-label { font-size: 10px; color: #64748b; margin-bottom: 4px; font-weight: 700; }
+        .h-val { font-size: 14px; color: #fff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        .h-val.tot { color: #00f3ff; font-size: 16px; }
+        .h-diff { font-size: 10px; font-weight: 900; margin-top: 4px; display: block; }
+        .diff-good { color: #00f3ff; } .diff-bad { color: #ff0055; } .diff-neu { color: #475569; }
+
+        .no-data { text-align: center; padding: 40px 0; color: #64748b; font-size: 13px; line-height: 1.6; }
+
+        /* ================= 탭 3 (다이어리) UI ================= */
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .cal-nav { background: transparent; border: none; color: #00f3ff; font-size: 18px; cursor: pointer; padding: 5px 10px; }
+        .cal-nav:hover { color: #fff; text-shadow: 0 0 10px #00f3ff; }
+        .cal-title { font-size: 18px; color: #fff; font-weight: 900; font-family: 'Orbitron', sans-serif; letter-spacing: 2px; }
+        
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .cal-weekday { font-size: 11px; color: #64748b; font-weight: 900; padding-bottom: 10px; }
+        .cal-day { 
+            background: #050608; border: 1px solid #1e293b; border-radius: 6px; 
+            height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding-top: 8px; cursor: pointer; transition: 0.2s; position: relative; font-size: 13px; color: #cbd5e1; font-weight: 700;
+        }
+        .cal-day:hover:not(.empty) { border-color: #00f3ff; }
+        .cal-day.empty { background: transparent; border-color: transparent; cursor: default; }
+        .cal-day.active { background: rgba(0,243,255,0.1); border-color: #00f3ff; color: #00f3ff; box-shadow: 0 0 10px rgba(0,243,255,0.2); }
+        .cal-day.today { color: #ff0055; }
+        .cal-dot { width: 6px; height: 6px; background: #00f3ff; border-radius: 50%; margin-top: 6px; box-shadow: 0 0 5px #00f3ff; }
+
+        .diary-section { margin-top: 25px; border-top: 1px solid #1e293b; padding-top: 20px; }
+        .diary-title { font-size: 15px; color: #00f3ff; font-weight: 900; font-family: 'Orbitron', sans-serif; margin-bottom: 15px; }
+        .diary-textarea {
+            width: 100%; height: 220px; background: #050608; border: 1px solid #1e293b; border-radius: 8px;
+            color: #fff; padding: 15px; font-size: 14px; font-family: 'Noto Sans KR', sans-serif;
+            resize: vertical; outline: none; transition: all 0.3s; margin-bottom: 15px; line-height: 1.6;
+        }
+        .diary-textarea:focus { border-color: #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.1); }
+        .btn-action-group { display: flex; gap: 10px; }
+
+        /* ================= 탭 5 (식단 플래너) UI ================= */
+        .plan-box { background: #050608; border: 1px solid #1e293b; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        .plan-box.cut { border-left: 4px solid #00f3ff; }
+        .plan-box.maintain { border-left: 4px solid #10b981; }
+        .plan-box.bulk { border-left: 4px solid #ff0055; }
+        
+        .plan-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; }
+        .plan-title { font-size: 16px; color: #fff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        .plan-kcal { font-size: 24px; color: #fff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        
+        .macro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .m-box { background: #0a0d14; border: 1px solid #112233; padding: 15px; border-radius: 8px; text-align: center; }
+        .m-box .m-title { font-size: 11px; color: #94a3b8; font-weight: 900; margin-bottom: 5px; }
+        .m-box .m-val { font-size: 18px; color: #fff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        
+        .food-list { display: flex; flex-direction: column; gap: 8px; }
+        .food-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px 15px; border-radius: 6px; font-size: 13px; color: #cbd5e1; font-weight: 700; }
+        .food-item span { color: #fff; font-weight: 900; background: #1e293b; padding: 4px 8px; border-radius: 4px; font-size: 12px;}
+        .plan-box.cut .food-item span { color: #00f3ff; }
+        .plan-box.bulk .food-item span { color: #ff0055; }
+        .plan-box.maintain .food-item span { color: #10b981; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes glowFadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 600px) {
+            .input-grid { grid-template-columns: 1fr; }
+            .modifier-box { grid-template-columns: repeat(2, 1fr); }
+            .h-groups-wrapper { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sys-header">
+        <h1>STRENGTH CORE</h1>
+        <p>PHYSICAL DATA ANALYSIS SYSTEM</p>
+    </div>
+
+    <!-- 상단 탭 메뉴 -->
+    <div class="tab-menu">
+        <button class="tab-link active" onclick="openTab(event, 'tab-1rm')">💪 3대 측정</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-history')">📈 스탯 트래커</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-diary')">📅 훈련 노트</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-warmup')">🔥 워밍업</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-meal')">🍽️ 식단 플래너</button>
+    </div>
+
+    <!-- ==========================================
+         [탭 1] 3대 측정 & 밸런스 분석 
+         ========================================== -->
+    <div id="tab-1rm" class="tab-content" style="display: block;">
+        <div class="cyber-card">
+            <div class="card-title">BODY STATS <span style="font-size:11px; color:#64748b; font-weight:400;">(선택 사항)</span></div>
+            <div class="card-desc">입력하지 않아도 3대 중량 분석이 가능합니다.</div>
+            <div class="input-grid">
+                <div class="input-group"><label>신장</label><input type="number" id="t1-height" placeholder="175"><span class="unit">cm</span></div>
+                <div class="input-group"><label>체중</label><input type="number" id="t1-bw" placeholder="75"><span class="unit">kg</span></div>
+                <div class="input-group"><label>골격근량</label><input type="number" id="t1-mm" placeholder="35"><span class="unit">kg</span></div>
+                <div class="input-group"><label>체지방률</label><input type="number" id="t1-bf" placeholder="15"><span class="unit">%</span></div>
+            </div>
+        </div>
+
+        <div class="cyber-card">
+            <div class="card-title">BIG 3 PERFORMANCE <span style="font-size:11px; color:#ff0055; font-weight:400;">(필수)</span></div>
+            <div class="sbd-row"><div class="sbd-label">SQUAT</div><input type="number" id="sq-wt" placeholder="중량"><input type="number" id="sq-reps" placeholder="횟수"></div>
+            <div class="sbd-row"><div class="sbd-label">BENCH</div><input type="number" id="bp-wt" placeholder="중량"><input type="number" id="bp-reps" placeholder="횟수"></div>
+            <div class="sbd-row"><div class="sbd-label">DEADLIFT</div><input type="number" id="dl-wt" placeholder="중량"><input type="number" id="dl-reps" placeholder="횟수"></div>
+            <button class="btn-analyze" onclick="calcSystem()">ANALYZE & SAVE</button>
+        </div>
+
+        <div id="dash-1rm" class="dashboard-area">
+            <div class="main-display">
+                <div class="label">BIG 3 TOTAL ESTIMATION</div>
+                <div class="value"><span id="r-total-val">0</span> <span style="font-size: 24px;">kg</span></div>
+                <div class="sbd-breakdown"><div>SQ: <span id="r-sq">0</span></div><div>BP: <span id="r-bp">0</span></div><div>DL: <span id="r-dl">0</span></div></div>
+            </div>
+
+            <div class="modifier-box">
+                <div class="mod-card"><div class="m-title">REL STRENGTH</div><div class="m-value" id="r-rs">-</div></div>
+                <div class="mod-card"><div class="m-title">FFMI</div><div class="m-value" id="r-ffmi">-</div></div>
+                <div class="mod-card"><div class="m-title">MUSCLE RATIO</div><div class="m-value" id="r-mr">-</div></div>
+                <div class="mod-card" style="border-color:#00f3ff;"><div class="m-title">ENDURANCE FX</div><div class="m-value" id="r-ef">30.0</div></div>
+            </div>
+
+            <div class="report-box">
+                <div class="title">BALANCE ANALYSIS & PROTOCOL</div>
+                <div class="text" id="r-report"></div>
+            </div>
+
+            <table class="rm-table">
+                <thead><tr><th>RM</th><th>SQUAT</th><th>BENCH</th><th>DEADLIFT</th></tr></thead>
+                <tbody id="r-rm-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [탭 2] 종합 트래커 (기록 + 차트)
+         ========================================== -->
+    <div id="tab-history" class="tab-content">
+        <div class="cyber-card">
+            <div class="card-title">BODY & PERFORMANCE TRACKER</div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 20px;">
+                * 3대 측정 시 자동 기록됩니다. (신체 정보를 입력하지 않은 경우 3대 기록만 표시됩니다.)
+            </div>
+
+            <!-- 시각화 차트 -->
+            <div class="chart-container" style="position: relative;">
+                <canvas id="trendChart"></canvas>
+            </div>
+
+            <div id="history-container" class="history-list"></div>
+            <button class="btn-clear" onclick="clearHistory()">기록 전체 초기화</button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [탭 3] 훈련 노트 (캘린더 + 메모장)
+         ========================================== -->
+    <div id="tab-diary" class="tab-content">
+        <div class="cyber-card">
+            <div class="cal-header">
+                <button class="cal-nav" onclick="changeMonth(-1)">◀</button>
+                <div class="cal-title" id="cal-month-year">2026.10</div>
+                <button class="cal-nav" onclick="changeMonth(1)">▶</button>
+            </div>
+            
+            <div class="cal-grid">
+                <div class="cal-weekday" style="color:#ff0055;">SUN</div><div class="cal-weekday">MON</div><div class="cal-weekday">TUE</div><div class="cal-weekday">WED</div><div class="cal-weekday">THU</div><div class="cal-weekday">FRI</div><div class="cal-weekday" style="color:#00f3ff;">SAT</div>
+            </div>
+            <div class="cal-grid" id="cal-days-grid"></div>
+
+            <div class="diary-section">
+                <div class="diary-title" id="diary-selected-date">YYYY.MM.DD Workout Note</div>
+                <textarea id="d-note" class="diary-textarea" placeholder="오늘의 훈련 루틴, 컨디션 등을 자유롭게 작성하세요..."></textarea>
+                <div class="btn-action-group">
+                    <button class="btn-analyze" style="margin-top:0;" onclick="saveNote()">노트 저장</button>
+                    <button class="btn-clear" style="margin-top:0; width: 30%; border-color: #ff0055; color: #ff0055;" onclick="clearNote()">삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [탭 4] 워밍업
+         ========================================== -->
+    <div id="tab-warmup" class="tab-content">
+        <div class="cyber-card">
+            <div class="card-title">TARGET SET (본 세트 입력)</div>
+            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <input type="number" id="t2-wt" placeholder="중량 (kg)">
+                <input type="number" id="t2-reps" placeholder="횟수 (Reps)">
+            </div>
+            <button class="btn-analyze" onclick="calcWarmup()">GENERATE WARM-UP</button>
+        </div>
+        <div id="dash-warmup" class="dashboard-area">
+            <div class="section-header">WARM-UP PROTOCOL</div>
+            <div id="w-grid" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [탭 5] 식단 플래너 (매크로 & 맞춤형 벌크/커팅)
+         ========================================== -->
+    <div id="tab-meal" class="tab-content">
+        <div class="cyber-card">
+            <div class="card-title">NUTRITION PLANNER</div>
+            <div class="input-grid">
+                <div class="input-group"><label>현재 체중 *</label><input type="number" id="m-bw" placeholder="75"><span class="unit">kg</span></div>
+                <div class="input-group"><label>현재 체지방률 *</label><input type="number" id="m-bf" placeholder="15"><span class="unit">%</span></div>
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 15px;">
+                <label>활동 수준 (Activity Level)</label>
+                <select id="m-activity">
+                    <option value="1.2">좌식 생활 (운동 거의 안 함)</option>
+                    <option value="1.375">가벼운 활동 (주 1~3회 운동)</option>
+                    <option value="1.55" selected>보통 활동 (주 3~5회 훈련)</option>
+                    <option value="1.725">매우 활동적 (주 6~7회 강한 훈련)</option>
+                    <option value="1.9">선수급 활동 (매일 2회 강한 훈련)</option>
+                </select>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 24px;">
+                <label>목표 (Goal)</label>
+                <select id="m-goal">
+                    <option value="cut">🔥 다이어트 / 커팅 (TDEE - 500kcal)</option>
+                    <option value="maintain">⚖️ 체중 유지 / 린매스업 (TDEE 동일)</option>
+                    <option value="bulk">💪 근비대 / 벌크업 (TDEE + 300kcal)</option>
+                </select>
+            </div>
+            <button class="btn-analyze" onclick="calcMealPlan()">GENERATE PLAN</button>
+        </div>
+
+        <div id="dash-meal" class="dashboard-area">
+            <!-- JS로 동적 렌더링될 플랜 박스 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    let trendChartInstance = null; 
+
+    function openTab(evt, tabId) {
+        let contents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < contents.length; i++) contents[i].style.display = "none";
+        
+        let links = document.getElementsByClassName("tab-link");
+        for (let i = 0; i < links.length; i++) links[i].className = links[i].className.replace(" active", "");
+        
+        document.getElementById(tabId).style.display = "block";
+        evt.currentTarget.className += " active";
+
+        if(tabId === 'tab-history') {
+            loadHistory();
+            renderChart(); 
+        }
+        if(tabId === 'tab-diary') initCalendar(); 
+    }
+
+    function get1RM(wt, reps) {
+        if (!wt || !reps || reps <= 0) return 0;
+        if (reps === 1) return wt;
+        return ((wt * (1 + reps/30)) + (wt * (36/(37-reps)))) / 2;
+    }
+
+    // ==========================================
+    // 차트 (Chart.js)
+    // ==========================================
+    function renderChart() {
+        const history = JSON.parse(localStorage.getItem('sbd_history')) || [];
+        const chartContainer = document.querySelector('.chart-container');
+        if (history.length === 0) {
+            chartContainer.style.display = 'none'; return;
+        }
+        chartContainer.style.display = 'block';
+
+        const labels = history.map(item => item.date.substring(5)); 
+        const totalData = history.map(item => item.tot);
+        // 체지방률이 '-'인 경우 null 처리하여 차트 끊어짐 방지
+        const bfData = history.map(item => item.bf === '-' ? null : item.bf);
+
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        if (trendChartInstance) trendChartInstance.destroy();
+
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: '3대 총합 (kg)', data: totalData, borderColor: '#00f3ff', backgroundColor: 'rgba(0, 243, 255, 0.1)', borderWidth: 2, yAxisID: 'y1', tension: 0.3, pointBackgroundColor: '#00f3ff', fill: true, spanGaps: true },
+                    { label: '체지방률 (%)', data: bfData, borderColor: '#ff0055', backgroundColor: 'rgba(255, 0, 85, 0.1)', borderWidth: 2, yAxisID: 'y2', tension: 0.3, pointBackgroundColor: '#ff0055', fill: false, spanGaps: true }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, color: '#94a3b8',
+                plugins: { legend: { labels: { color: '#cbd5e1', font: { family: 'Orbitron', size: 11 } } }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(10, 13, 20, 0.9)' } },
+                scales: {
+                    x: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { family: 'Orbitron', size: 10 } } },
+                    y1: { type: 'linear', position: 'left', grid: { color: '#1e293b' }, ticks: { color: '#00f3ff', font: { family: 'Orbitron', size: 10 } }, title: { display: true, text: 'Weight (kg)', color: '#00f3ff', font: {size: 10}} },
+                    y2: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#ff0055', font: { family: 'Orbitron', size: 10 } }, title: { display: true, text: 'Body Fat (%)', color: '#ff0055', font: {size: 10}} }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 로컬 스토리지 데이터 저장 & 트래커 (선택 입력 대응)
+    // ==========================================
+    function saveHistory(bw, mm, bf, tot, sq, bp, dl) {
+        let history = JSON.parse(localStorage.getItem('sbd_history')) || [];
+        const today = new Date();
+        const dateStr = today.getFullYear() + '.' + String(today.getMonth()+1).padStart(2, '0') + '.' + String(today.getDate()).padStart(2, '0');
+        const timeStr = String(today.getHours()).padStart(2, '0') + ':' + String(today.getMinutes()).padStart(2, '0');
+
+        const newRecord = { date: dateStr, time: timeStr, bw, mm, bf, tot, sq, bp, dl };
+        if (history.length > 0 && history[history.length - 1].date === dateStr) {
+            history[history.length - 1] = newRecord;
+        } else {
+            history.push(newRecord);
+        }
+        localStorage.setItem('sbd_history', JSON.stringify(history));
+    }
+
+    function deleteHistoryItem(idx) {
+        if(confirm("기록을 삭제하시겠습니까?")) {
+            let h = JSON.parse(localStorage.getItem('sbd_history')) || [];
+            h.splice(idx, 1);
+            localStorage.setItem('sbd_history', JSON.stringify(h));
+            loadHistory();
+            renderChart(); 
+        }
+    }
+
+    function loadHistory() {
+        let history = JSON.parse(localStorage.getItem('sbd_history')) || [];
+        const container = document.getElementById('history-container');
+        container.innerHTML = '';
+        if (history.length === 0) {
+            container.innerHTML = '<div class="no-data">기록이 없습니다.</div>'; return;
+        }
+        const revHistory = history.map((item, idx) => ({...item, origIndex: idx})).reverse();
+        revHistory.forEach((record, index) => {
+            let dTot=0, dSq=0, dBp=0, dDl=0, dBw=0, dMm=0, dBf=0;
+            let cTot='diff-neu', cBw='diff-neu', cMm='diff-neu', cBf='diff-neu';
+            let sTot='', sBw='', sMm='', sBf='';
+            
+            // 직전 기록이 있을 때 증감 계산
+            if (index < revHistory.length - 1) {
+                const prev = revHistory[index + 1];
+                
+                // 3대 중량 비교 (항상 있음)
+                dTot = (record.tot - prev.tot).toFixed(1);
+                sTot = dTot > 0 ? '▲+' : (dTot < 0 ? '▼' : '-');
+                cTot = dTot > 0 ? 'diff-good' : (dTot < 0 ? 'diff-bad' : 'diff-neu');
+
+                // 체성분 비교 (선택 입력 대응)
+                const getBodyDiff = (curr, pr) => {
+                    if(curr === '-' || pr === '-') return { diff: 0, sign: '-', clr: 'diff-neu' };
+                    let d = (curr - pr).toFixed(1);
+                    return { diff: d, sign: d > 0 ? '▲+' : (d < 0 ? '▼' : '-'), clr: d != 0 ? 'diff-good' : 'diff-neu' };
+                };
+
+                let bwRes = getBodyDiff(record.bw, prev.bw);
+                dBw = bwRes.diff; sBw = bwRes.sign; cBw = bwRes.clr;
+
+                let mmRes = getBodyDiff(record.mm, prev.mm);
+                dMm = mmRes.diff; sMm = mmRes.sign; 
+                cMm = dMm > 0 ? 'diff-good' : (dMm < 0 ? 'diff-bad' : 'diff-neu'); // 골격근은 오르면 파란색
+
+                let bfRes = getBodyDiff(record.bf, prev.bf);
+                dBf = bfRes.diff; sBf = bfRes.sign; 
+                cBf = dBf < 0 ? 'diff-good' : (dBf > 0 ? 'diff-bad' : 'diff-neu'); // 체지방은 내리면 파란색
+
+            } else { 
+                sTot = '-'; sBw = '- 최초'; sMm = '-'; sBf = '-'; 
+            }
+
+            // 표시 문자열 처리
+            let dispTotDiff = sTot + (dTot != 0 ? Math.abs(dTot) : '');
+            let dispBwDiff = (record.bw === '-' || sBw === '- 최초') ? sBw : sBw + (dBw != 0 ? Math.abs(dBw) : '');
+            let dispMmDiff = (record.mm === '-' || sMm === '- 최초') ? sMm : sMm + (dMm != 0 ? Math.abs(dMm) : '');
+            let dispBfDiff = (record.bf === '-' || sBf === '- 최초') ? sBf : sBf + (dBf != 0 ? Math.abs(dBf) : '');
+
+            const html = `
+                <div class="history-item">
+                    <button class="btn-delete-record" onclick="deleteHistoryItem(${record.origIndex})">×</button>
+                    <div class="h-date">${record.date} <span>${record.time} 저장</span></div>
+                    <div class="h-groups-wrapper">
+                        <div class="h-group-box">
+                            <div class="h-group-title">BODY STATS</div>
+                            <div class="h-stats-row">
+                                <div class="h-stat-col"><div class="h-label">체중</div><div class="h-val">${record.bw !== '-' ? record.bw+'kg' : '-'}</div><div class="h-diff ${cBw}">${dispBwDiff}</div></div>
+                                <div class="h-stat-col"><div class="h-label">골격근</div><div class="h-val">${record.mm !== '-' ? record.mm+'kg' : '-'}</div><div class="h-diff ${cMm}">${dispMmDiff}</div></div>
+                                <div class="h-stat-col"><div class="h-label">체지방</div><div class="h-val">${record.bf !== '-' ? record.bf+'%' : '-'}</div><div class="h-diff ${cBf}">${dispBfDiff}</div></div>
+                            </div>
+                        </div>
+                        <div class="h-group-box">
+                            <div class="h-group-title">BIG 3</div>
+                            <div class="h-stats-row">
+                                <div class="h-stat-col"><div class="h-label">TOTAL</div><div class="h-val tot">${record.tot}</div><div class="h-diff ${cTot}">${dispTotDiff}</div></div>
+                                <div class="h-stat-col"><div class="h-label">SQ</div><div class="h-val">${record.sq}</div></div>
+                                <div class="h-stat-col"><div class="h-label">BP</div><div class="h-val">${record.bp}</div></div>
+                                <div class="h-stat-col"><div class="h-label">DL</div><div class="h-val">${record.dl}</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    function clearHistory() {
+        if(confirm("모든 분석 기록을 초기화하시겠습니까?")) { 
+            localStorage.removeItem('sbd_history'); 
+            loadHistory(); 
+            renderChart(); 
+        }
+    }
+
+    // ==========================================
+    // 3대 측정 & 밸런스 로직 (선택 입력 처리)
+    // ==========================================
+    function calcSystem() {
+        // 체성분 (선택)
+        const h = parseFloat(document.getElementById('t1-height').value) || null;
+        const bw = parseFloat(document.getElementById('t1-bw').value) || null;
+        const mm = parseFloat(document.getElementById('t1-mm').value) || null;
+        const bf = parseFloat(document.getElementById('t1-bf').value) || null;
+        
+        // 3대 중량 (필수)
+        const sqWt = parseFloat(document.getElementById('sq-wt').value);
+        const sqReps = parseInt(document.getElementById('sq-reps').value);
+        const bpWt = parseFloat(document.getElementById('bp-wt').value);
+        const bpReps = parseInt(document.getElementById('bp-reps').value);
+        const dlWt = parseFloat(document.getElementById('dl-wt').value);
+        const dlReps = parseInt(document.getElementById('dl-reps').value);
+
+        if (!sqWt || !sqReps || !bpWt || !bpReps || !dlWt || !dlReps) {
+            alert("3대 운동 기록을 빠짐없이 입력해 주세요."); return;
+        }
+
+        const sq1RM = get1RM(sqWt, sqReps); const bp1RM = get1RM(bpWt, bpReps); const dl1RM = get1RM(dlWt, dlReps);
+        const total = sq1RM + bp1RM + dl1RM;
+
+        document.getElementById('r-total-val').innerText = total.toFixed(1);
+        document.getElementById('r-sq').innerText = sq1RM.toFixed(1);
+        document.getElementById('r-bp').innerText = bp1RM.toFixed(1);
+        document.getElementById('r-dl').innerText = dl1RM.toFixed(1);
+
+        let rsStr = "N/A", ffmiStr = "N/A", mrStr = "N/A", ef = 30;
+
+        // 신체 정보가 있을 때만 계산
+        if (h && bw && mm && bf) {
+            const hm = h / 100; const lbm = bw * (1 - (bf / 100)); const ffmi = lbm / (hm * hm);
+            const rs = total / bw; const mr = (mm / bw) * 100;
+            ef = 30 + ((ffmi - 20) * 0.8) + ((15 - bf) * 0.3); ef = Math.max(20, Math.min(ef, 40));
+
+            rsStr = rs.toFixed(2) + 'x';
+            ffmiStr = ffmi.toFixed(1);
+            mrStr = mr.toFixed(1) + '%';
+        }
+
+        document.getElementById('r-rs').innerText = rsStr;
+        document.getElementById('r-ffmi').innerText = ffmiStr;
+        document.getElementById('r-mr').innerText = mrStr;
+        document.getElementById('r-ef').innerText = (ef === 30 && rsStr === "N/A") ? "30.0 (기본)" : ef.toFixed(1);
+
+        let report = ""; const bpSqRatio = bp1RM / sq1RM; const sqDlRatio = sq1RM / dl1RM;
+        if (bpSqRatio < 0.6) report += `미는 힘이 약합니다. 탑세트를 활용하세요.<br>`;
+        if (sqDlRatio < 0.75) report += `하체 코어가 약합니다. 스쿼트 후 자이언트 세트를 추가하세요.<br>`;
+        if (report === "") report = `밸런스가 아주 좋습니다!`;
+        document.getElementById('r-report').innerHTML = report;
+
+        // 기록 저장 시 값이 없으면 '-' 로 저장
+        saveHistory(bw || '-', mm || '-', bf || '-', Math.round(total), Math.round(sq1RM), Math.round(bp1RM), Math.round(dl1RM));
+
+        const tbody = document.getElementById('r-rm-tbody'); tbody.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            let pSq = sq1RM / (1 + (i / ef)); if(i===1) pSq = sq1RM;
+            let pBp = bp1RM / (1 + (i / ef)); if(i===1) pBp = bp1RM;
+            let pDl = dl1RM / (1 + (i / ef)); if(i===1) pDl = dl1RM;
+            tbody.insertAdjacentHTML('beforeend', `<tr><td>${i}RM</td><td>${pSq.toFixed(1)}</td><td>${pBp.toFixed(1)}</td><td>${pDl.toFixed(1)}</td></tr>`);
+        }
+        document.getElementById('dash-1rm').style.display = 'block';
+    }
+
+    // ==========================================
+    // [탭 3] 훈련 노트 (메모장 & 캘린더)
+    // ==========================================
+    let currDate = new Date();
+    let selDateStr = "";
+
+    function initCalendar() { renderCalendar(); }
+    function changeMonth(dir) { currDate.setMonth(currDate.getMonth() + dir); renderCalendar(); }
+
+    function renderCalendar() {
+        const year = currDate.getFullYear(); const month = currDate.getMonth();
+        document.getElementById('cal-month-year').innerText = `${year}.${String(month + 1).padStart(2, '0')}`;
+        
+        const firstDay = new Date(year, month, 1).getDay(); 
+        const daysInMonth = new Date(year, month + 1, 0).getDate(); 
+        const grid = document.getElementById('cal-days-grid'); grid.innerHTML = '';
+        const noteData = JSON.parse(localStorage.getItem('workout_notes')) || {};
+
+        const trueToday = new Date();
+        const trueYear = trueToday.getFullYear(); const trueMonth = trueToday.getMonth(); const trueDay = trueToday.getDate();
+
+        for (let i = 0; i < firstDay; i++) grid.insertAdjacentHTML('beforeend', `<div class="cal-day empty"></div>`);
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const isToday = (year === trueYear && month === trueMonth && i === trueDay);
+            const isActive = (dateStr === selDateStr);
+            const hasRecord = noteData[dateStr] && noteData[dateStr].trim().length > 0;
+            const dotHTML = hasRecord ? `<div class="cal-dot"></div>` : '';
+            
+            grid.insertAdjacentHTML('beforeend', `<div class="cal-day ${isToday ? 'today' : ''} ${isActive ? 'active' : ''}" onclick="selectDate('${dateStr}')">${i}${dotHTML}</div>`);
+        }
+        if(!selDateStr) selectDate(`${trueYear}-${String(trueMonth + 1).padStart(2, '0')}-${String(trueDay).padStart(2, '0')}`);
+    }
+
+    function selectDate(dateStr) {
+        selDateStr = dateStr;
+        document.getElementById('diary-selected-date').innerText = `${dateStr.replace(/-/g, '.')} Workout Note`;
+        const noteData = JSON.parse(localStorage.getItem('workout_notes')) || {};
+        document.getElementById('d-note').value = noteData[dateStr] || '';
+        renderCalendar(); 
+    }
+
+    function saveNote() {
+        if(!selDateStr) return;
+        const text = document.getElementById('d-note').value;
+        let noteData = JSON.parse(localStorage.getItem('workout_notes')) || {};
+        
+        if (text.trim() === '') delete noteData[selDateStr];
+        else noteData[selDateStr] = text;
+        localStorage.setItem('workout_notes', JSON.stringify(noteData));
+        
+        const btn = document.querySelector('#tab-diary .btn-analyze');
+        const origText = btn.innerText; btn.innerText = "Saved!";
+        setTimeout(() => { btn.innerText = origText; }, 1500);
+        renderCalendar(); 
+    }
+
+    function clearNote() {
+        if(!selDateStr) return;
+        if(confirm("오늘의 노트를 삭제하시겠습니까?")) { document.getElementById('d-note').value = ''; saveNote(); }
+    }
+
+    // ==========================================
+    // [탭 4] 워밍업 
+    // ==========================================
+    function calcWarmup() {
+        const wt = parseFloat(document.getElementById('t2-wt').value);
+        const reps = parseInt(document.getElementById('t2-reps').value);
+        if (!wt || !reps) return;
+        const wGrid = document.getElementById('w-grid'); wGrid.innerHTML = '';
+        let steps = [{ name: 'SET 1', pct: '빈바벨', wt: 20, reps: 10 }];
+        const r2_5 = (v) => Math.round(v / 2.5) * 2.5;
+
+        if (wt > 40) {
+            let w2 = r2_5(wt * 0.5); if(w2 > 20) steps.push({ name: 'SET 2', pct: '50%', wt: w2, reps: Math.min(8, reps + 3) });
+            let w3 = r2_5(wt * 0.7); if(w3 > 20) steps.push({ name: 'SET 3', pct: '70%', wt: w3, reps: Math.min(5, reps + 1) });
+            let w4 = r2_5(wt * 0.85); if(w4 > 20) steps.push({ name: 'SET 4', pct: '85%', wt: w4, reps: Math.max(1, Math.min(2, reps - 2)) });
+        }
+        steps.forEach(s => wGrid.insertAdjacentHTML('beforeend', `<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px solid #1e293b; padding:16px; border-radius:8px;"><div style="display:flex; align-items:center; gap:12px;"><div style="background:#1e293b; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:4px; font-family:'Orbitron', sans-serif;">${s.name}</div><div style="font-size:13px; color:#cbd5e1; font-weight:700;">${s.pct}</div></div><div style="font-size:16px; color:#fff; font-family:'Orbitron', sans-serif; font-weight:900;">${s.wt}kg <span style="color:#00f3ff; font-size:14px; margin-left:8px;">x ${s.reps}</span></div></div>`));
+        document.getElementById('dash-warmup').style.display = 'block';
+    }
+
+    // ==========================================
+    // [탭 5] 식단 플래너 
+    // ==========================================
+    function calcMealPlan() {
+        const bw = parseFloat(document.getElementById('m-bw').value);
+        const bf = parseFloat(document.getElementById('m-bf').value);
+        const act = parseFloat(document.getElementById('m-activity').value);
+        const goal = document.getElementById('m-goal').value;
+
+        if (!bw || !bf) {
+            alert("체중과 체지방률을 먼저 입력해 주세요."); return;
+        }
+
+        const lbm = bw * (1 - (bf / 100));
+        const bmr = 370 + (21.6 * lbm);
+        const tdee = bmr * act;
+
+        let targetCal = 0;
+        let pGram = 0, cGram = 0, fGram = 0;
+        let planTitle = "", planClass = "";
+        let foodHTML = "";
+
+        if (goal === 'cut') {
+            targetCal = tdee - 500;
+            planTitle = "Cutting Plan";
+            planClass = "cut";
+            pGram = lbm * 2.5; 
+            fGram = (targetCal * 0.25) / 9;
+            cGram = (targetCal - (pGram * 4) - (fGram * 9)) / 4;
+            if(cGram < 50) { cGram = 50; targetCal = (pGram*4) + (cGram*4) + (fGram*9); }
+
+            const chk = (pGram / 23 * 100).toFixed(0); 
+            const sweet = (cGram / 30 * 100).toFixed(0);
+            const almond = ((fGram * 0.7) / 0.5).toFixed(0);
+
+            foodHTML = `
+                <div class="food-item">닭가슴살 <span>약 ${chk}g</span></div>
+                <div class="food-item">고구마 (탄수화물) <span>약 ${sweet}g</span></div>
+                <div class="food-item">아몬드 <span>약 ${almond}g</span></div>
+            `;
+
+        } else if (goal === 'bulk') {
+            targetCal = tdee + 300;
+            planTitle = "Bulking Plan";
+            planClass = "bulk";
+            pGram = lbm * 2.2;
+            fGram = (targetCal * 0.20) / 9;
+            cGram = (targetCal - (pGram * 4) - (fGram * 9)) / 4;
+
+            const beef = (pGram / 22 * 100).toFixed(0);
+            const rice = (cGram / 70).toFixed(1);
+            const pasta = (cGram / 0.75).toFixed(0);
+            const peanut = ((fGram * 0.6) / 0.5).toFixed(0);
+
+            foodHTML = `
+                <div class="food-item">소고기(우둔살) <span>약 ${beef}g</span></div>
+                <div class="food-item">쌀밥 (또는 건파스타 ${pasta}g) <span>약 ${rice}공기</span></div>
+                <div class="food-item">땅콩버터 (지방 보충) <span>약 ${peanut}g</span></div>
+            `;
+
+        } else {
+            targetCal = tdee;
+            planTitle = "Maintain Plan";
+            planClass = "maintain";
+            pGram = lbm * 2.2;
+            fGram = (targetCal * 0.25) / 9;
+            cGram = (targetCal - (pGram * 4) - (fGram * 9)) / 4;
+
+            const chk = (pGram / 23 * 100).toFixed(0); 
+            const rice = (cGram / 70).toFixed(1);
+            const almond = ((fGram * 0.5) / 0.5).toFixed(0);
+
+            foodHTML = `
+                <div class="food-item">닭가슴살 <span>약 ${chk}g</span></div>
+                <div class="food-item">흰쌀밥 <span>약 ${rice}공기</span></div>
+                <div class="food-item">아몬드 <span>약 ${almond}g</span></div>
+            `;
+        }
+
+        targetCal = Math.round(targetCal); pGram = Math.round(pGram); cGram = Math.round(cGram); fGram = Math.round(fGram);
+
+        const html = `
+            <div class="plan-box ${planClass}">
+                <div class="plan-header">
+                    <div class="plan-title">${planTitle}</div>
+                    <div class="plan-kcal">${targetCal} <span style="font-size:14px; color:#64748b; font-family:'Noto Sans KR', sans-serif;">kcal</span></div>
+                </div>
+                
+                <div class="macro-grid">
+                    <div class="m-box"><div class="m-title">PROTEIN</div><div class="m-val">${pGram}g</div></div>
+                    <div class="m-box"><div class="m-title">CARBS</div><div class="m-val">${cGram}g</div></div>
+                    <div class="m-box"><div class="m-title">FAT</div><div class="m-val">${fGram}g</div></div>
+                </div>
+
+                <div class="section-header" style="margin-top:32px;">Food Examples</div>
+                <div class="food-list">
+                    ${foodHTML}
+                </div>
+            </div>
+            
+            <div style="font-size:13px; color:#64748b; text-align:center; padding: 16px;">
+                BMR: ${Math.round(bmr)} kcal &middot; TDEE: ${Math.round(tdee)} kcal
+            </div>
+        `;
+
+        document.getElementById('dash-meal').innerHTML = html;
+        document.getElementById('dash-meal').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
